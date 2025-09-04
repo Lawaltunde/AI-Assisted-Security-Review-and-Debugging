@@ -1,136 +1,102 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Poll } from "@/app/lib/types";
-import { submitVote } from "@/app/lib/actions/poll-actions";
-import SharePoll from "../SharePoll";
+import { useState } from 'react';
+import { submitVote } from '@/app/lib/actions/poll-actions';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-export default function PollDetailClient({ poll }: { poll: Poll }) {
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [hasVoted, setHasVoted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+// Define the types for the poll and vote
+interface Vote {
+  id: string;
+  option: string;
+  poll_id: string;
+  user_id: string;
+}
 
-  const totalVotes = poll.options.reduce(
-    (sum, option) => sum + (option.votes || 0),
-    0,
-  );
+interface Poll {
+  id: string;
+  question: string;
+  options: string[];
+  votes: Vote[];
+  user_id: string;
+}
+
+export default function PollDetailClient({ poll: initialPoll }: { poll: Poll }) {
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [poll, setPoll] = useState<Poll>(initialPoll);
 
   const handleVote = async () => {
-    if (selectedOption === null) return;
-
-    setIsSubmitting(true);
-
-    const { error } = await submitVote(poll.id, selectedOption);
-
-    if (error) {
-      // Handle error, e.g., show a toast notification
-      console.error(error);
-    } else {
-      setHasVoted(true);
+    if (selectedOption) {
+      try {
+        const updatedPoll = await submitVote(poll.id, selectedOption);
+        setPoll(updatedPoll);
+      } catch (error) {
+        console.error('Error submitting vote:', error);
+      }
     }
-
-    setIsSubmitting(false);
   };
 
-  const getPercentage = (votes: number) => {
-    if (totalVotes === 0) return 0;
-    return Math.round((votes / totalVotes) * 100);
-  };
+  const voteCounts = poll.options.map(option => ({
+    name: option,
+    value: poll.votes.filter(vote => vote.option === option).length,
+  }));
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <Link href="/polls" className="text-blue-600 hover:underline">
-          &larr; Back to Polls
-        </Link>
-        <div className="flex space-x-2">
-          <Button variant="outline" asChild>
-            <Link href={`/polls/${poll.id}/edit`}>Edit Poll</Link>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>{poll.question}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup onValueChange={setSelectedOption}>
+            {poll.options.map(option => (
+              <div key={option} className="flex items-center space-x-2">
+                <RadioGroupItem value={option} id={option} />
+                <Label htmlFor={option}>{option}</Label>
+              </div>
+            ))}
+          </RadioGroup>
+          <Button onClick={handleVote} disabled={!selectedOption} className="mt-4">
+            Vote
           </Button>
-          <Button variant="outline" className="text-red-500 hover:text-red-700">
-            Delete
-          </Button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">{poll.question}</CardTitle>
-          <CardDescription>{poll.description}</CardDescription>
+          <CardTitle>Results</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {!hasVoted ? (
-            <div className="space-y-3">
-              {poll.options.map((option, index) => (
-                <div
-                  key={index}
-                  className={`p-3 border rounded-md cursor-pointer transition-colors ${
-                    selectedOption === index
-                      ? "border-blue-500 bg-blue-50"
-                      : "hover:bg-slate-50"
-                  }`}
-                  onClick={() => setSelectedOption(index)}
+        <CardContent>
+          <div style={{ width: '100%', height: 300 }}>
+            <ResponsiveContainer>
+              <PieChart>
+                <Pie
+                  data={voteCounts}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                  nameKey="name"
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                 >
-                  {option.text}
-                </div>
-              ))}
-              <Button
-                onClick={handleVote}
-                disabled={selectedOption === null || isSubmitting}
-                className="mt-4"
-              >
-                {isSubmitting ? "Submitting..." : "Submit Vote"}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <h3 className="font-medium">Results:</h3>
-              {poll.options.map((option, index) => (
-                <div key={index} className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span>{option.text}</span>
-                    <span>
-                      {getPercentage(option.votes || 0)}% ({option.votes || 0}{" "}
-                      votes)
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2.5">
-                    <div
-                      className="bg-blue-600 h-2.5 rounded-full"
-                      style={{
-                        width: `${getPercentage(option.votes || 0)}%`,
-                      }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
-              <div className="text-sm text-slate-500 pt-2">
-                Total votes: {totalVotes}
-              </div>
-            </div>
-          )}
+                  {voteCounts.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
-        <CardFooter className="text-sm text-slate-500 flex justify-between">
-          <span>Created by {poll.user_id}</span>
-          <span>
-            Created on {new Date(poll.created_at).toLocaleDateString()}
-          </span>
-        </CardFooter>
       </Card>
-
-      <div className="pt-4">
-        <SharePoll pollId={poll.id} pollTitle={poll.question} />
-      </div>
     </div>
   );
 }

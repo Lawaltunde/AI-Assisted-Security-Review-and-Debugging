@@ -68,7 +68,7 @@ export async function getPollById(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("polls")
-    .select("*")
+    .select("*, votes(*)")
     .eq("id", id)
     .single();
 

@@ -1,3 +1,26 @@
+## Security Audit & Remediation Summary
+
+This section summarizes the security vulnerabilities that were identified and fixed in this codebase.
+
+### 1. Cross-Site Scripting (XSS)
+
+-   **Vulnerability**: The application was vulnerable to stored XSS attacks. Malicious scripts could be injected into poll questions and options, which would then be executed in the browsers of other users who viewed the poll.
+-   **Fix**: Implemented input sanitization using the `xss` library on the server-side `createPoll` and `updatePoll` actions. This ensures that any potentially malicious HTML is stripped from user-provided content before it is stored in the database.
+
+### 2. Missing Row-Level Security (RLS)
+
+-   **Vulnerability**: The Supabase `polls` and `votes` tables were not protected by Row-Level Security (RLS). This meant that any user with the anonymous API key could potentially read, modify, or delete data in these tables, bypassing application-level authorization checks.
+-   **Fix**: Enabled RLS on both the `polls` and `votes` tables. Added security policies to control access:
+    -   **Polls Table**: Users can only read polls if they are authenticated. They can only insert, update, or delete polls that they own.
+    -   **Votes Table**: Users can only read votes for polls they are allowed to see. They can only insert votes for themselves.
+
+### 3. Client-Side Data Fetching
+
+-   **Vulnerability**: The poll detail page was fetching data directly on the client side. This exposed the Supabase API key and made the application more susceptible to unauthorized database access.
+-   **Fix**: Refactored the data fetching logic to be server-side. The `PollDetailPage` now fetches data in a Server Component and passes it down to the `PollDetailClient` component as props. This improves security and performance.
+
+---
+
 # ALX Polly: A Polling Application
 
 Welcome to ALX Polly, a full-stack polling application built with Next.js, TypeScript, and Supabase. This project serves as a practical learning ground for modern web development concepts, with a special focus on identifying and fixing common security vulnerabilities.

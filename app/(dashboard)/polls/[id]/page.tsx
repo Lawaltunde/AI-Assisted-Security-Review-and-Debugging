@@ -10,4 +10,3 @@ export default async function PollDetailPage({ params }: { params: { id: string 
 
   return <PollDetailClient poll={poll} />;
 }
-}
