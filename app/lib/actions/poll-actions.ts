@@ -2,13 +2,16 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import xss from "xss";
 
 // CREATE POLL
 export async function createPoll(formData: FormData) {
   const supabase = await createClient();
 
-  const question = formData.get("question") as string;
-  const options = formData.getAll("options").filter(Boolean) as string[];
+  const question = xss(formData.get("question") as string);
+  const options = (formData.getAll("options").filter(Boolean) as string[]).map(
+    (option) => xss(option),
+  );
 
   if (!question || options.length < 2) {
     return { error: "Please provide a question and at least two options." };
@@ -125,8 +128,10 @@ export async function deletePoll(id: string) {
 export async function updatePoll(pollId: string, formData: FormData) {
   const supabase = await createClient();
 
-  const question = formData.get("question") as string;
-  const options = formData.getAll("options").filter(Boolean) as string[];
+  const question = xss(formData.get("question") as string);
+  const options = (formData.getAll("options").filter(Boolean) as string[]).map(
+    (option) => xss(option),
+  );
 
   if (!question || options.length < 2) {
     return { error: "Please provide a question and at least two options." };
