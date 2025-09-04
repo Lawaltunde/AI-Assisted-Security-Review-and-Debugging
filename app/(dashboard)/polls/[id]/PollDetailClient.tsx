@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Poll } from "@/app/lib/types";
 import { submitVote } from "@/app/lib/actions/poll-actions";
-import VulnerableShare from "../vulnerable-share";
+import SharePoll from "../SharePoll";
 
 export default function PollDetailClient({ poll }: { poll: Poll }) {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -129,7 +129,7 @@ export default function PollDetailClient({ poll }: { poll: Poll }) {
       </Card>
 
       <div className="pt-4">
-        <VulnerableShare pollId={poll.id} pollTitle={poll.question} />
+        <SharePoll pollId={poll.id} pollTitle={poll.question} />
       </div>
     </div>
   );
